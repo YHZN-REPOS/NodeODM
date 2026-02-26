@@ -53,6 +53,8 @@ $(function() {
     };
     App.prototype.startTask = function(){
         var self = this;
+        var outputsValue = $("#outputs").val().trim();
+        var parsedOutputs;
         this.uploading(true);
         this.error("");
         this.uuid("");
@@ -68,7 +70,20 @@ $(function() {
         formData.append("webhook", $("#webhook").val());
         formData.append("skipPostProcessing", !$("#doPostProcessing").prop('checked'));
         formData.append("options", JSON.stringify(optionsModel.getUserOptions()));
-        // formData.append("outputs", JSON.stringify(['odm_orthophoto/odm_orthophoto.tif']));
+
+        if (outputsValue.length > 0){
+            try{
+                parsedOutputs = JSON.parse(outputsValue);
+                if (!Array.isArray(parsedOutputs)){
+                    die("Outputs must be a JSON array. Example: [\"opensfm\"]");
+                    return;
+                }
+                formData.append("outputs", JSON.stringify(parsedOutputs));
+            }catch(e){
+                die("Invalid outputs JSON. Example: [\"opensfm\"]");
+                return;
+            }
+        }
 
         if (this.mode() === 'file'){
             if (this.filesCount() > 0){
@@ -482,6 +497,9 @@ $(function() {
     });
     $('#resetTaskName').on('click', function(){
         $("#taskName").val('');
+    });
+    $('#resetOutputs').on('click', function(){
+        $("#outputs").val('');
     });
 
     // Load options

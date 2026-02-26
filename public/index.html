@@ -124,6 +124,15 @@
                                     <br/><br/>
                                 </div>
 
+                                <div>
+                                    <label for="outputs">all.zip outputs (optional JSON array):</label>
+                                    <br/>
+                                    <input id="outputs" name="outputs" class="form-control" type="text" placeholder='["opensfm"]'>
+                                    <button type="submit" class="btn glyphicon glyphicon-info-sign btn-info" data-toggle="tooltip" data-placement="top" title='Optional override for all.zip contents. Example: ["opensfm"]'></button>
+                                    <button id="resetOutputs" type="submit" class="btn glyphicon glyphicon glyphicon-repeat btn-default" data-toggle="tooltip" data-placement="top" title="Reset to default"  ></button>
+                                    <br/><br/>
+                                </div>
+
                                 <div data-bind="foreach: options">
                                     <label data-bind="text: properties.name + (properties.domain ? ' (' + properties.domain + ')' : '')"></label><br/>
                                     <!-- ko if: properties.type !== 'bool' && properties.type !== 'enum' -->
