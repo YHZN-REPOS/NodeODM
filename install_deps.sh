@@ -10,7 +10,7 @@ if [ -z "$NODE_VERSION" ]; then
 fi
 
 for i in {1..20}; do
-    apt-get update && apt-get install -y curl gpg-agent && break
+    apt-get update && apt-get install -y curl gpg-agent ca-certificates && break
     echo "apt-get failed, retrying... ($i/20)"
     sleep 30
 done
@@ -22,9 +22,20 @@ nvm install $NODE_VERSION
 nvm alias default $NODE_VERSION
 
 for i in {1..20}; do
-    apt-get install -y unzip p7zip-full && npm install -g nodemon && break
+    apt-get install -y unzip p7zip-full && npm install -g nodemon@2.0.22 && break
     echo "apt-get failed, retrying... ($i/20)"
     sleep 30
 done
 
-npm install --production
+for i in {1..5}; do
+    npm install --production && break
+    echo "npm install failed, retrying... ($i/5)"
+    npm cache clean --force || true
+    rm -rf node_modules
+    sleep 15
+done
+
+if [ "$i" -eq 5 ]; then
+    echo "npm install failed after 5 attempts" >&2
+    exit 1
+fi
