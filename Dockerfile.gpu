@@ -10,6 +10,8 @@ RUN mkdir /var/www
 WORKDIR "/var/www"
 RUN useradd -m -d "/home/odm" -s /bin/bash odm
 COPY --chown=odm:odm . /var/www
+RUN sed -i 's/\r$//' /var/www/install_deps.sh /var/www/node.sh && \
+    chmod +x /var/www/install_deps.sh /var/www/node.sh
 
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_VERSION 14
