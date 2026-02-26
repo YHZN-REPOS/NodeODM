@@ -121,6 +121,36 @@ Since ODM has support [for GPU acceleration](https://github.com/OpenDroneMap/ODM
 docker run -p 3000:3000 --gpus all opendronemap/nodeodm:gpu
 ```
 
+### Building a local GPU image
+
+If you need to build a GPU image from this repository:
+
+```bash
+docker build --no-cache -f Dockerfile.gpu -t nodeodm:gpu .
+docker run -p 3000:3000 --gpus all nodeodm:gpu
+```
+
+If you want to map output data to a local folder:
+
+```bash
+docker run -p 3000:3000 --gpus all -v /path/to/data:/var/www/data nodeodm:gpu
+```
+
+On Windows:
+
+```bash
+docker run -p 3000:3000 --gpus all -v D:\odm-data:/var/www/data nodeodm:gpu
+```
+
+### GPU build reliability updates
+
+Recent updates in this repository improve build reliability:
+
+- `Dockerfile.gpu` now copies project files before running `install_deps.sh`.
+- `Dockerfile.gpu` normalizes line endings for shell scripts during build.
+- `install_deps.sh` pins `nodemon@2.0.22` and retries `npm install --production`.
+- `.gitattributes` enforces LF line endings for `*.sh`, `Dockerfile` and `Dockerfile.*`.
+
 The GPU implementation is CUDA-based, so will only work on NVIDIA GPUs.
 
 If you have an NVIDIA card, you can test that docker is recognizing the GPU by running:
