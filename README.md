@@ -1,279 +1,74 @@
-# NodeODM
+# NodeODM Fork: GPU Build And Usage Guide
 
-[![Build Status](https://travis-ci.org/OpenDroneMap/NodeODM.svg?branch=master)](https://travis-ci.org/OpenDroneMap/NodeODM)
+This fork keeps a focused setup for building and running the GPU image reliably.
 
-NodeODM is a [standard API specification](https://github.com/OpenDroneMap/NodeODM/blob/master/docs/index.adoc) for processing aerial images with engines such as [ODM](https://github.com/OpenDroneMap/ODM). The API is used by clients such as [WebODM](https://github.com/OpenDroneMap/WebODM), [CloudODM](https://github.com/OpenDroneMap/CloudODM) and [PyODM](https://github.com/OpenDroneMap/PyODM). This repository contains a performant, production-ready reference implementation written in NodeJS.
+For full upstream docs, API details, and original project notes, see:
+https://github.com/OpenDroneMap/NodeODM
 
-![image](https://user-images.githubusercontent.com/1951843/78455986-4805ab80-766f-11ea-8a79-1691e062600c.png)
+## What This Fork Changes
 
-## Getting Started
+- `Dockerfile.gpu` now copies project files before running `install_deps.sh`.
+- `Dockerfile.gpu` normalizes line endings for shell scripts during build.
+- `install_deps.sh` now installs `ca-certificates`, pins `nodemon@2.0.22`, and retries `npm install --production`.
+- `.gitattributes` enforces LF line endings for `*.sh`, `Dockerfile`, and `Dockerfile.*`.
 
-We recommend that you setup NodeODM using [Docker](https://www.docker.com/).
+## Prerequisites
 
-* From the Docker Quickstart Terminal (Windows / OSX) or from the command line (Linux) type:
-```
-docker run -p 3000:3000 opendronemap/nodeodm
-```
-
-* If you're on Windows/OSX, find the IP of your Docker machine by running this command from your Docker Quickstart Terminal:
-
-```
-docker-machine ip
-```
-
-Linux users can connect to 127.0.0.1.
-
-* Open a Web Browser to `http://<yourDockerMachineIp>:3000`
-* Load [some images](https://github.com/OpenDroneMap/ODMdata)
-* Press "Start Task"
-* Go for a walk :)
-
-If the computer running NodeODM is using an old or 32bit CPU, you need to compile OpenDroneMap from sources and setup NodeODM natively. You cannot use docker. Docker images work with CPUs with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3 instruction set support or higher. Seeing a `Illegal instruction` error while processing images is an indication that your CPU is too old. 
-
-### Building docker image
-
-If you need to test changes as a docker image, you can build easily as follows:
-
-```
-docker build -t my_nodeodm_image --no-cache .
-```
-
-Run as follows:
-
-```
-docker run -p 3000:3000 my_nodeodm_image &
-```
-
-
-### Testing alternative ODM images through NodeODM
-
-In order to test alternative ODM docker images in NodeODM, you will need to change the dockerfile for NodeODM to point to your ODM image. For example if you built an alternate ODM image as follows:
-
-```
-docker build -t my_odm_image --no-cache .
-```
-
-Then modify NodeODM's Dockerfile to point to the new ODM image in the first line:
-
-```
-FROM my_odm_image
-MAINTAINER Piero Toffanin <pt@masseranolabs.com>
-
-EXPOSE 3000
-...
-```
-
-Then build the NodeODM image:
-
-```
-docker build -t my_nodeodm_image --no-cache .
-```
-
-Finally run as follows:
-
-```
-docker run -p 3000:3000 my_nodeodm_image &
-```
-
-### Running rootless
-
-* A rootless alternative to Docker is using [Apptainer](https://apptainer.org/). In order to run NodeODM together with ClusterODM in rootless environments, for example on HPC, we need a rootless alternative to Docker, and that's where Apptainer comes in to play. From the Linux command line, cd into the NodeODM folder and run the following commands to host a NodeODM instance:
-
-```
-apptainer build --sandbox node/ apptainer.def
-apptainer run --writable node/ 
-```
-
-`apptainer build --sandbox` requires you to have root permission to build this apptainer container. Make sure someone with root permission build this for you. You will need to build this apptainer container if you want to work with ClusterODM on the HPC. Check for [ClusterODM](https://github.com/OpenDroneMap/ClusterODM) for more instructions on using SLURM to set it up.
-
-An apptainer.def file can be built directly from the dockerfile as needed:
-
-```
-pip3 install spython
-spython recipe Dockerfile &> apptainer.def
-```
-
-## API Docs
-
-See the [API documentation page](https://github.com/OpenDroneMap/NodeODM/blob/master/docs/index.adoc).
-
-Some minor breaking changes exist from version `1.x` to `2.x` of the API. See [migration notes](https://github.com/OpenDroneMap/NodeODM/blob/master/MIGRATION.md).
-
-## Run Tasks from the Command Line
-
-You can use [CloudODM](https://github.com/OpenDroneMap/CloudODM) to run tasks with NodeODM from the command line.
-
-## Using an External Hard Drive
-
-If you want to store results on a separate drive, map the `/var/www/data` folder to the location of your drive:
+- Docker Desktop (Linux container mode).
+- NVIDIA driver and Docker GPU support.
+- A GPU runtime check should pass:
 
 ```bash
-docker run -p 3000:3000 -v /mnt/external_hd:/var/www/data opendronemap/nodeodm
+docker run --rm --gpus all nvidia/cuda:10.0-base nvidia-smi
 ```
 
-This can be also used to access the computation results directly from the file system.
-
-## Using GPU Acceleration
-
-Since ODM has support [for GPU acceleration](https://github.com/OpenDroneMap/ODM#gpu-acceleration) you can use another base image for GPU processing. You need to use the `opendronemap/nodeodm:gpu` docker image instead of `opendronemap/nodeodm` and you need to pass the `--gpus all` flag:
+## Build GPU Image
 
 ```bash
-docker run -p 3000:3000 --gpus all opendronemap/nodeodm:gpu
-```
-
-### Building a local GPU image
-
-If you need to build a GPU image from this repository:
-
-```bash
+git pull
 docker build --no-cache -f Dockerfile.gpu -t nodeodm:gpu .
+```
+
+## Run GPU Container
+
+```bash
 docker run -p 3000:3000 --gpus all nodeodm:gpu
 ```
 
-If you want to map output data to a local folder:
+## Run With Data Volume Mapping
+
+Linux path example:
 
 ```bash
 docker run -p 3000:3000 --gpus all -v /path/to/data:/var/www/data nodeodm:gpu
 ```
 
-On Windows:
+Windows path example:
 
 ```bash
 docker run -p 3000:3000 --gpus all -v D:\odm-data:/var/www/data nodeodm:gpu
 ```
 
-### GPU build reliability updates
-
-Recent updates in this repository improve build reliability:
-
-- `Dockerfile.gpu` now copies project files before running `install_deps.sh`.
-- `Dockerfile.gpu` normalizes line endings for shell scripts during build.
-- `install_deps.sh` pins `nodemon@2.0.22` and retries `npm install --production`.
-- `.gitattributes` enforces LF line endings for `*.sh`, `Dockerfile` and `Dockerfile.*`.
-
-The GPU implementation is CUDA-based, so will only work on NVIDIA GPUs.
-
-If you have an NVIDIA card, you can test that docker is recognizing the GPU by running:
-
-```
-docker run --rm --gpus all nvidia/cuda:10.0-base nvidia-smi
-```
-
-If you see an output that looks like this:
-
-```
-Fri Jul 24 18:51:55 2020       
-+-----------------------------------------------------------------------------+
-| NVIDIA-SMI 440.82       Driver Version: 440.82       CUDA Version: 10.2     |
-|-------------------------------+----------------------+----------------------+
-| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
-```
-
-You're in good shape!
-
-See https://github.com/NVIDIA/nvidia-docker and https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker for information on docker/NVIDIA setup.
-
-### Windows Bundle
-
-NodeODM can run as a self-contained executable on Windows without the need for additional dependencies (except for [ODM](https://github.com/OpenDroneMap/ODM) which needs to be installed separately). You can download the latest `nodeodm-windows-x64.zip` bundle from the [releases](https://github.com/OpenDroneMap/NodeODM/releases) page. Extract the contents in a folder and run:
+## Rename Local Image Tag
 
 ```bash
-nodeodm.exe --odm_path c:\path\to\ODM
+docker tag nodeodm:gpu my-nodeodm:gpu
+docker rmi nodeodm:gpu
 ```
 
-### Run it Natively
+## Recommended Workflow
 
-If you are already running [ODM](https://github.com/OpenDroneMap/ODM) on Ubuntu natively you can follow these steps:
+- Use one environment consistently for Git and Docker commands.
+- If Windows path mapping is required, do `pull/build/run` consistently on Windows.
+- Avoid mixing Windows Git and WSL Git on the same working tree.
 
-1) Install Entwine: https://entwine.io/quickstart.html#installation
- 
-2) Install node.js, npm dependencies, 7zip and unzip:
+## Troubleshooting
 
-```bash
-sudo curl --silent --location https://deb.nodesource.com/setup_6.x | sudo bash -
-sudo apt-get install -y nodejs python-gdal p7zip-full unzip
-git clone https://github.com/OpenDroneMap/NodeODM
-cd NodeODM
-npm install
-```
+- Error: `install_deps.sh: No such file or directory`
+Fix: pull latest changes; this is fixed by Dockerfile build order.
 
-3) Start NodeODM
+- Error: `$'\r': command not found`
+Fix: pull latest changes; line ending normalization is included in build and `.gitattributes`.
 
-```bash
-node index.js
-```
-
-You may need to specify your ODM project path to start the server:
-
-```
-node index.js --odm_path /home/username/OpenDroneMap
-```
-
-If you want to start node ODM on a different port you can do the following:
-
-```
-node index.js --port 8000 --odm_path /home/username/OpenDroneMap
-```
-
-For other command line options you can run:
-
-```
-node index.js --help
-```
-
-You can also specify configuration values via a JSON file:
-
-```
-node index.js --config config.default.json
-```
-
-Command line arguments always take precedence over the configuration file.
-
-### Run it using PM2
-
-The app can also be run as a background process using the [pm2 process manager](https://github.com/Unitech/pm2), which can also assist you with system startup scripts and process monitoring.
-
-To install pm2, run (using `sudo` if required):
-```shell
-npm install pm2 -g
-```
-The app can then be started using
-```shell
-pm2 start processes.json
-```
-To have pm2 started on OS startup run
-```shell
-pm2 save
-pm2 startup
-```
-and then run the command as per the instructions that prints out. If that command errors then you may have to specify the system (note that systemd should be used on CentOS 7). Note that if the process is not running as root (recommended) you will need to change `/etc/init.d/pm2-init.sh` to set `export PM2_HOME="/path/to/user/home/.pm2"`, as per [these instructions](
-http://www.buildsucceeded.com/2015/solved-pm2-startup-at-boot-time-centos-7-red-hat-linux/)
-
-You can monitor the process using `pm2 status`.
-
-### Test Mode
-
-If you want to make a contribution, but don't want to setup OpenDroneMap, or perhaps you are working on a Windows machine, or if you want to run automated tests, you can turn test mode on:
-
-```
-node index.js --test
-```
-
-While in test mode all calls to OpenDroneMap's code will be simulated (see the /tests directory for the mock data that is returned).
-
-### Test Images
-
-You can find some test drone images [here](https://github.com/dakotabenjamin/odm_data).
-
-## What if I need more functionality?
-
-NodeODM is meant to be a lightweight API. If you are looking for a more comprehensive solution to drone mapping, check out [WebODM](https://github.com/OpenDroneMap/WebODM), which uses NodeODM for processing.
-
-## Contributing
-
-Make a pull request for small contributions. For big contributions, please open a discussion first. Please use ES6 syntax while writing new Javascript code so that we can keep the code base uniform.
-
-## Roadmap
-
-See the [list of wanted features](https://github.com/OpenDroneMap/NodeODM/issues?q=is%3Aopen+is%3Aissue+label%3A%22new+feature%22).
+- Error: `npm ERR! cb() never called!`
+Fix: pull latest changes; dependency install retry logic is now included in `install_deps.sh`.
